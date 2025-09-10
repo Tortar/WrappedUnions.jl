@@ -1,7 +1,7 @@
 
 module WrappedUnions
 
-export WrappedUnion, iswrappedunion, wrappedtypes, unwrap, @split, @wrapped
+export WrappedUnion, iswrappedunion, wrappedtypes, unwrap, unionsplit, @unionsplit, @wrapped
 
 abstract type WrappedUnion end
 
@@ -30,13 +30,13 @@ macro wrapped(expr)
     end)
 end
 
-macro split(expr)
+macro unionsplit(expr)
     expr.head != :call && error("Expression is not a function call")
     f, args = expr.args[1], expr.args[2:end]
-    return esc(quote $WrappedUnions._split($f, ($(args...),)) end)
+    return esc(quote $WrappedUnions.unionsplit($f, ($(args...),)) end)
 end
 
-@generated function _split(f::F, args::Tuple) where {F}
+@generated function unionsplit(f::F, args::Tuple) where {F}
     args = fieldtypes(args)
     wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if T <: WrappedUnion]
 

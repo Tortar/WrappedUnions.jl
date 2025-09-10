@@ -3,7 +3,7 @@
 
 This package defines a minimalistic interface to work efficiently with Unions of types.
 
-# Example
+## Example
 
 ```julia
 julia> using WrappedUnions
@@ -19,7 +19,7 @@ julia> xs = [X(false), X(1), X([true, false]), X([1,2])]
  X(Bool[1, 0])
  X([1, 2])
 
-julia> splittedsum(x) = @split sum(x)
+julia> splittedsum(x) = @unionsplit sum(x)
 splittedsum (generic function with 1 method)
 
 julia> splittedsum.(xs)
@@ -54,12 +54,18 @@ Body::Vector{Int64}
 └──      return %2
 ```
 
-# API
+## API
 
 - `WrappedUnion`                           -> Abstract type all new wrapped union must be subtype of.
 - `@wrapped struct ... end`                -> Creates a wrapped union.
-- `@split f(args...)`                      -> Executes the function performing union-splitting on the 
-                                              wrapped union arguments. 
+- `unionsplit(f::Function, args::Tuple)`   -> Executes the function performing union-splitting on the 
+                                              wrapped union arguments.
+- `@unionsplit f(args...)`                 -> Calls `unionsplit(f, args)`.
 - `unwrap(::WrappedUnion)`                 -> Returns the instance contained in the wrapped union.
 - `iswrappedunion(::Type{<:WrappedUnion})` -> Returns true if the type is a wrapped union.
 - `wrappedtypes(::Type{<:WrappedUnion})`   -> Returns the types composing the internal union.
+
+
+## Contributing
+
+Contributions are welcome! If you encounter any issues, have suggestions for improvements, or would like to add new features, feel free to open an issue or submit a pull request.

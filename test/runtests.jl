@@ -1,6 +1,7 @@
 
 using WrappedUnions
-using Test
+
+using Aqua, Test
 
 @testset "WrappedUnions.jl" begin
 
