@@ -29,8 +29,10 @@ julia> splittedsum.(xs)
  1
  3
 
-julia> unwrap(xs[1])
-false
+julia> unwrap(xs[3])
+2-element Vector{Bool}:
+ 1
+ 0
 
 julia> iswrappedunion(typeof(xs[1]))
 true
@@ -39,7 +41,7 @@ julia> wrappedtypes(typeof(xs[1]))
 (Bool, Int64, Vector{Bool}, Vector{Int64})
 ```
 
-Let's verify if `splittedsum` has been accurately inferred:
+Let's verify that `splittedsum` has been accurately inferred:
 
 ```julia
 julia> @code_warntype splittedsum.(xs)

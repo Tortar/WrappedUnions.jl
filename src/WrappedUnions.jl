@@ -6,6 +6,10 @@ export WrappedUnion, iswrappedunion, wrappedtypes, unwrap, unionsplit, @unionspl
 abstract type WrappedUnion end
 
 macro wrapped(expr)
+    return esc(wrapped(expr))
+end
+
+function wrapped(expr)
     (expr.head != :struct || expr.args[1] != false) && error("Expression is not an immutable struct")
     type = expr.args[2].args[1]
     type_name = type isa Symbol ? type : type.args[1]
@@ -18,7 +22,7 @@ macro wrapped(expr)
         error("Struct should contain a unique field union::Union{...}")
     end
     union_types = fields[1].args[2].args[2:end]
-    return esc(quote
+    return quote
         !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
         $expr
         if !isempty($type_params_unconstr)
@@ -27,7 +31,7 @@ macro wrapped(expr)
             wrappedtypes(wu::Type{$type_name}) = ($(union_types...),)
         end
         nothing
-    end)
+    end
 end
 
 macro unionsplit(expr)
@@ -39,7 +43,6 @@ end
 @generated function unionsplit(f::F, args::Tuple) where {F}
     args = fieldtypes(args)
     wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if T <: WrappedUnion]
-
     final_args = Any[:(args[$i]) for i in 1:length(args)]
     for (idx, T) in wrappedunion_args
         final_args[idx] = Symbol("v_", idx)
@@ -72,5 +75,7 @@ iswrappedunion(::Type{<:WrappedUnion}) = true
 unwrap(wu::WrappedUnion) = getfield(wu, :union)
 
 function wrappedtypes end
+
+precompile(wrapped, (Expr,))
 
 end
