@@ -71,4 +71,6 @@ iswrappedunion(::Type{<:WrappedUnion}) = true
 
 unwrap(wu::WrappedUnion) = getfield(wu, :union)
 
+function wrappedtypes end
+
 end
