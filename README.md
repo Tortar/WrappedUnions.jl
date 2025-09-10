@@ -4,7 +4,7 @@ Wrap a Union and Enjoy Type-Stability
 Interface Idea:
 
 ```julia
-@Name(Types...) [<: WrappedUnion] # let's say WU
+@wrapdef Name(Types...) [<: WrappedUnion] # let's say Name = WU
 unwrap(w::WU)
 iswrappedunion(w::WU)
 wrappedtypes(w::WU)
