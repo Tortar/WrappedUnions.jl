@@ -1,24 +1,42 @@
 
 module WrappedUnions
 
+export WrappedUnion, iswrappedunion, wrappedtypes, unwrap, @split, @wrapped
+
 abstract type WrappedUnion end
 
-unwrap(wu::WrappedUnion) = getfield(wu, :union)
-
-function _get_union_types(T_sum)
-    field_T = fieldtype(T_sum, 1)
-    types = []
-    curr = field_T
-    while curr isa Union
-        push!(types, curr.a)
-        curr = curr.b
+macro wrapped(expr)
+    (expr.head != :struct || expr.args[1] != false) && error("Expression is not an immutable struct")
+    type = expr.args[2].args[1]
+    type_name = type isa Symbol ? type : type.args[1]
+    type_params = type isa Expr && type.head == :curly ? type.args[2:end] : []
+    type_params_unconstr = [(t isa Symbol ? t : t.args[1]) for t in type_params]
+    abstract_type = (expr.args[2] isa Symbol || expr.args[2].head != :<:) ? :Any : expr.args[2].args[2]
+    abstract_type_name = abstract_type isa Symbol ? abstract_type : abstract_type.args[1]
+    fields = Base.remove_linenums!(expr.args[3]).args
+    if length(fields) != 1 || fields[1].args[1] != :union || fields[1].args[2].args[1] != :Union
+        error("Struct should contain a unique field union::Union{...}")
     end
-    push!(types, curr)
-    return types
+    union_types = fields[1].args[2].args[2:end]
+    return esc(quote
+        !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
+        $expr
+        if !isempty($type_params_unconstr)
+            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = ($(union_types...),)
+        else
+            wrappedtypes(wu::Type{$type_name}) = ($(union_types...),)
+        end
+        nothing
+    end)
 end
 
-@generated function branch(f::F, args::Tuple) where {F}
-    
+macro split(expr)
+    expr.head != :call && error("Expression is not a function call")
+    f, args = expr.args[1], expr.args[2:end]
+    return esc(quote $WrappedUnions._split($f, ($(args...),)) end)
+end
+
+@generated function _split(f::F, args::Tuple) where {F}
     args = fieldtypes(args)
     wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if T <: WrappedUnion]
 
@@ -28,10 +46,9 @@ end
     end
     
     body = :(f($(final_args...)))
-    
     for (idx, T) in reverse(wrappedunion_args)
         unwrapped_var = Symbol("v_", idx)
-        wrapped_types = _get_union_types(T)
+        wrapped_types = Base.uniontypes(fieldtype(T, 1))
         
         branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
         for V_type in reverse(wrapped_types)
@@ -48,5 +65,10 @@ end
     end
     return body
 end
+
+iswrappedunion(::Any) = false
+iswrappedunion(::Type{<:WrappedUnion}) = true
+
+unwrap(wu::WrappedUnion) = getfield(wu, :union)
 
 end
