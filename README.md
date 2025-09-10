@@ -4,7 +4,10 @@ Wrap a Union and Enjoy Type-Stability
 Interface Idea:
 
 ```julia
-@wrapdef Name(Types...) [<: WrappedUnion] # let's say Name = WU
+@wrapped struct #Name [<: WrappedUnion] # let's say Name = WU
+    union::Union{...}
+    #constructors
+end
 unwrap(w::WU)
 iswrappedunion(w::WU)
 wrappedtypes(w::WU)
