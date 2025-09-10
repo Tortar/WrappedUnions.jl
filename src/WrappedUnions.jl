@@ -3,8 +3,23 @@ module WrappedUnions
 
 export WrappedUnion, iswrappedunion, wrappedtypes, unwrap, unionsplit, @unionsplit, @wrapped
 
+"""
+    WrappedUnion <: Any
+
+Abstract type all new wrapped union are subtype of.
+"""
 abstract type WrappedUnion end
 
+"""
+    @wrapped struct Name{...} <: SubTypeWrappedUnion
+        union::Union{...}
+    end
+
+Creates a wrapped union. `expr` must be a standard struct
+instantiation syntax, e.g. inner constructors can be arbitrary.
+However, it accepts only immutable structs with a single field
+which must be `union::Union{...}`.
+"""
 macro wrapped(expr)
     return esc(wrapped(expr))
 end
@@ -34,13 +49,25 @@ function wrapped(expr)
     end
 end
 
+"""
+    @unionsplit f(args...)
+
+Calls `unionsplit(f, args)`. See its docstring for further information.
+"""
 macro unionsplit(expr)
     expr.head != :call && error("Expression is not a function call")
     f, args = expr.args[1], expr.args[2:end]
     return esc(quote $WrappedUnions.unionsplit($f, ($(args...),)) end)
 end
 
-@generated function unionsplit(f::F, args::Tuple) where {F}
+"""
+    unionsplit(f::Function, args::Tuple)
+
+Executes the function performing union-splitting on the wrapped union arguments.
+This means that if the function has a unique return type, the function call will
+be type-stable.
+"""
+@generated function unionsplit(f::Function, args::Tuple)
     args = fieldtypes(args)
     wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if T <: WrappedUnion]
     final_args = Any[:(args[$i]) for i in 1:length(args)]
@@ -69,11 +96,26 @@ end
     return body
 end
 
+"""
+    iswrappedunion(::Type{T})
+
+Returns true if the type is a wrapped union.
+"""
 iswrappedunion(::Any) = false
 iswrappedunion(::Type{<:WrappedUnion}) = true
 
+"""
+    unwrap(wu::WrappedUnion)
+
+Returns the instance contained in the wrapped union.
+"""
 unwrap(wu::WrappedUnion) = getfield(wu, :union)
 
+"""
+    wrappedtypes(::Type{<:WrappedUnion})
+
+Returns the types composing the wrapped union.
+"""
 function wrappedtypes end
 
 precompile(wrapped, (Expr,))
