@@ -4,11 +4,12 @@ Wrap a Union and Enjoy Type-Stability
 Interface Idea:
 
 ```julia
-@Name(Types...) [<: WrappedUnion]
-unwrap
-iswrappedunion
-wrappedtypes
-branch
+@Name(Types...) [<: WrappedUnion] # let's say WU
+unwrap(w::WU)
+iswrappedunion(w::WU)
+wrappedtypes(w::WU)
+branch(f::Function, args::Tuple)
+@branch f(args)
 ```
 
 with no method defined apart from constructors by default and no dependency
