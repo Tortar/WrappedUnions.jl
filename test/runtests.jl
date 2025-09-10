@@ -53,5 +53,4 @@ splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
     @inferred Int splittedsum(ys[1], 2, xs[1])
     f(ys, z, xs) = splittedsum.(xs)
     @inferred Vector{Int} f(ys, 2, xs)
-
 end
