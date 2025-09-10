@@ -12,22 +12,46 @@ julia> @wrapped struct X <: WrappedUnion
            union::Union{Bool, Int, Vector{Bool}, Vector{Int}}
        end
 
-julia> x = X([1,2])
-X([1, 2])
+julia> xs = [X(false), X(1), X([true, false]), X([1,2])]
+4-element Vector{X}:
+ X(false)
+ X(1)
+ X(Bool[1, 0])
+ X([1, 2])
 
-julia> @split sum(x)
-3
+julia> splittedsum(x) = @split sum(x)
+splittedsum (generic function with 1 method)
 
-julia> unwrap(x)
-2-element Vector{Int64}:
+julia> splittedsum.(xs)
+4-element Vector{Int64}:
+ 0
  1
- 2
+ 1
+ 3
 
-julia> iswrappedunion(typeof(x))
+julia> unwrap(xs[1])
+false
+
+julia> iswrappedunion(typeof(xs[1]))
 true
 
-julia> wrappedtypes(typeof(x))
+julia> wrappedtypes(typeof(xs[1]))
 (Bool, Int64, Vector{Bool}, Vector{Int64})
+```
+
+Let's verify if `splittedsum` has been accurately inferred:
+
+```julia
+julia> @code_warntype splittedsum.(xs)
+MethodInstance for (::var"##dotfunction#230#1")(::Vector{X})
+  from (::var"##dotfunction#230#1")(x1) @ Main none:0
+Arguments
+  #self#::Core.Const(var"##dotfunction#230#1"())
+  x1::Vector{X}
+Body::Vector{Int64}
+1 ─ %1 = Base.broadcasted(Main.splittedsum, x1)::Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{1}, Nothing, typeof(splittedsum), Tuple{Vector{X}}}
+│   %2 = Base.materialize(%1)::Vector{Int64}
+└──      return %2
 ```
 
 # API
