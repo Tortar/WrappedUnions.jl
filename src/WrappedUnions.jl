@@ -11,8 +11,9 @@ Abstract type all new wrapped union are subtype of.
 abstract type WrappedUnion end
 
 """
-    @wrapped struct Name{...} <: SubTypeWrappedUnion
-        union::Union{...}
+    @wrapped struct Name{Params...} <: SubTypeWrappedUnion
+        union::Union{Types...}
+        InnerConstructors...
     end
 
 Creates a wrapped union. `expr` must be a standard struct
