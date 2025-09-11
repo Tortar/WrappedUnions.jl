@@ -61,6 +61,33 @@ Body::Vector{Int64}
 └──      return %2
 ```
 
+`@unionsplit` allows to easily forward calls for `getproperty` or `setproperty!` or any other function
+
+```julia
+julia> using WrappedUnions
+
+julia> mutable struct A x::Int end
+
+julia> mutable struct B x::Int end
+
+julia> @wrapped struct Y <: WrappedUnion
+           union::Union{A, B}
+       end
+
+julia> Base.getproperty(y::Y, name::Symbol) = @unionsplit Base.getproperty(y, name)
+
+julia> Base.setproperty!(y::Y, name::Symbol, x) = @unionsplit Base.setproperty!(y, name, x)
+
+julia> y = Y(A(1))
+Y(A(1))
+
+julia> y.x
+1
+
+julia> y.x = 2
+2
+```
+
 ## API
 
 ```
@@ -83,6 +110,18 @@ Body::Vector{Int64}
 ```
 
 For more information, see the docstrings.
+
+## Related Packages
+
+These are packages with similar functionalities:
+
+- [`LightSumTypes.jl`](https://github.com/JuliaDynamics/LightSumTypes.jl)
+- [`SumTypes.jl`](https://github.com/MasonProtter/SumTypes.jl)
+- [`Moshi.jl`](https://github.com/Roger-luo/Moshi.jl)
+- [`Unityper.jl`](https://github.com/YingboMa/Unityper.jl)
+
+Though, `WrappedUnions.jl` is the one offering, in the eye of its author, the most transparent, simple and flexible
+interface.
 
 ## Contributing
 
