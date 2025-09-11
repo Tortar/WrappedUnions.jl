@@ -17,22 +17,14 @@ julia> @wrapped struct X <: WrappedUnion
            union::Union{Bool, Int, Vector{Bool}, Vector{Int}}
        end
 
-julia> xs = [X(false), X(1), X([true, false]), X([1,2])]
-4-element Vector{X}:
- X(false)
- X(1)
- X(Bool[1, 0])
- X([1, 2])
+julia> xs = (X(false), X(1), X([true, false]), X([1,2]))
+(X(false), X(1), X(Bool[1, 0]), X([1, 2]))
 
 julia> splittedsum(x) = @unionsplit sum(x)
 splittedsum (generic function with 1 method)
 
 julia> splittedsum.(xs)
-4-element Vector{Int64}:
- 0
- 1
- 1
- 3
+(0, 1, 1, 3)
 
 julia> unwrap(xs[3])
 2-element Vector{Bool}:
@@ -50,18 +42,43 @@ Let's verify that `splittedsum` has been accurately inferred:
 
 ```julia
 julia> @code_warntype splittedsum.(xs)
-MethodInstance for (::var"##dotfunction#230#1")(::Vector{X})
+MethodInstance for (::var"##dotfunction#230#1")(::NTuple{4, X})
   from (::var"##dotfunction#230#1")(x1) @ Main none:0
 Arguments
   #self#::Core.Const(var"##dotfunction#230#1"())
-  x1::Vector{X}
-Body::Vector{Int64}
-1 ─ %1 = Base.broadcasted(Main.splittedsum, x1)::Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{1}, Nothing, typeof(splittedsum), Tuple{Vector{X}}}
-│   %2 = Base.materialize(%1)::Vector{Int64}
+  x1::NTuple{4, X}
+Body::NTuple{4, Int64}
+1 ─ %1 = Base.broadcasted(Main.splittedsum, x1)::Base.Broadcast.Broadcasted{Base.Broadcast.Style{Tuple}, Nothing, typeof(splittedsum), Tuple{NTuple{4, X}}}
+│   %2 = Base.materialize(%1)::NTuple{4, Int64}
 └──      return %2
 ```
 
-`@unionsplit` allows to easily forward calls for `getproperty` or `setproperty!` or any other function
+What if we used just
+
+```julia
+julia> xs = (false, 1, [true, false], [1,2])
+(false, 1, Bool[1, 0], [1, 2])
+```
+
+then
+
+```julia
+julia> @code_warntype sum.(xs)
+MethodInstance for (::var"##dotfunction#230#1")(::Tuple{Bool, Int64, Vector{Bool}, Vector{Int64}})
+  from (::var"##dotfunction#230#1")(x1) @ Main none:0
+Arguments
+  #self#::Core.Const(var"##dotfunction#230#1"())
+  x1::Tuple{Bool, Int64, Vector{Bool}, Vector{Int64}}
+Body::NTuple{4, Any}
+1 ─ %1 = Main.sum::Core.Const(sum)
+│   %2 = Base.broadcasted(%1, x1)::Base.Broadcast.Broadcasted{Base.Broadcast.Style{Tuple}, Nothing, typeof(sum), Tuple{Tuple{Bool, Int64, Vector{Bool}, Vector{Int64}}}}
+│   %3 = Base.materialize(%2)::NTuple{4, Any}
+└──      return %3
+```
+
+Notice the `NTuple{4, Any}` instead of `NTuple{4, Int64}`.
+
+Consider also that `@unionsplit` allows to easily forward calls any function such as `getproperty` or `setproperty!`
 
 ```julia
 julia> using WrappedUnions
