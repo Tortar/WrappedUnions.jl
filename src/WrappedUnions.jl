@@ -61,13 +61,13 @@ macro unionsplit(expr)
 end
 
 """
-    unionsplit(f::Function, args::Tuple)
+    unionsplit(f::Union{Type,Function}, args::Tuple)
 
 Executes the function performing union-splitting on the wrapped union arguments.
 This means that if the function has a unique return type, the function call will
 be type-stable.
 """
-@generated function unionsplit(f::Function, args::Tuple)
+@generated function unionsplit(f::Union{Type,Function}, args::Tuple)
     args = fieldtypes(args)
     wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if T <: WrappedUnion]
     final_args = Any[:(args[$i]) for i in 1:length(args)]
