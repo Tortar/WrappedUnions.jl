@@ -111,10 +111,10 @@ union as output!
 
 ```julia
 julia> @wrapped struct Z <: WrappedUnion
-           union::Union{Bool, Int, BitVector, Vector{Int}}
+           union::Union{Float64, Vector{Float64}}
        end
 
-julia> f(x) = x * true;
+julia> f(x) = x / true;
 
 julia> f(x::X) = Z(@unionsplit f(x));
 
@@ -122,7 +122,7 @@ julia> xs = (X(false), X(1), X([true, false]), X([1,2]))
 (X(false), X(1), X(Bool[1, 0]), X([1, 2]))
 
 julia> f.(xs) # this is now type-stable
-(Z(false), Z(1), Z(Bool[1, 0]), Z([1, 2]))
+(Z(0.0), Z(1.0), Z([1.0, 0.0]), Z([1.0, 2.0]))
 ```
 
 ## API
