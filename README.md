@@ -109,22 +109,22 @@ julia> y.x = 2
 ## API
 
 ```
-- WrappedUnion                           -> Abstract type all new wrapped union are 
-                                            subtype of.
+- WrappedUnion                                     -> Abstract type all new wrapped union are 
+                                                      subtype of.
 
-- @wrapped struct ... end                -> Creates a wrapped union.
+- @wrapped struct ... end                          -> Creates a wrapped union.
 
-- unionsplit(f::Function, args::Tuple)   -> Executes the function performing union-splitting
-                                            on the wrapped union arguments.
+- unionsplit(f::Union{Type,Function}, args::Tuple) -> Executes the function performing union-splitting
+                                                      on the wrapped union arguments.
 
-- @unionsplit f(args...)                 -> Calls `unionsplit(f, args)`.
+- @unionsplit f(args...)                           -> Calls `unionsplit(f, args)`.
 
-- unwrap(::WrappedUnion)                 -> Returns the instance contained in the wrapped
-                                            union.
+- unwrap(::WrappedUnion)                           -> Returns the instance contained in the wrapped
+                                                      union.
 
-- iswrappedunion(::Type{T})              -> Returns true if the type is a wrapped union.
+- iswrappedunion(::Type{T})                        -> Returns true if the type is a wrapped union.
 
-- wrappedtypes(::Type{<:WrappedUnion})   -> Returns the types composing the wrapped union.
+- wrappedtypes(::Type{<:WrappedUnion})             -> Returns the types composing the wrapped union.
 ```
 
 For more information, see the docstrings.
