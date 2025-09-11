@@ -5,7 +5,7 @@
 [![Coverage](https://codecov.io/gh/Tortar/WrappedUnions.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Tortar/WrappedUnions.jl)
 [![Aqua](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-This package offers a minimal interface to work efficiently with a `Union` of types wrapped into a struct,
+This package offers a minimal interface to work efficiently with a `Union` of types wrapped into a struct
 by allowing to enforce union-splitting at call site.
 
 ## Example
@@ -20,10 +20,10 @@ julia> @wrapped struct X <: WrappedUnion
 julia> xs = (X(false), X(1), X([true, false]), X([1,2]))
 (X(false), X(1), X(Bool[1, 0]), X([1, 2]))
 
-julia> splittedsum(x) = @unionsplit sum(x)
+julia> splitsum(x) = @unionsplit sum(x)
 splittedsum (generic function with 1 method)
 
-julia> splittedsum.(xs)
+julia> splitsum.(xs)
 (0, 1, 1, 3)
 
 julia> unwrap(xs[3])
@@ -41,7 +41,7 @@ julia> wrappedtypes(typeof(xs[1]))
 Let's verify that `splittedsum` has been accurately inferred:
 
 ```julia
-julia> @code_warntype splittedsum.(xs)
+julia> @code_warntype splitsum.(xs)
 MethodInstance for (::var"##dotfunction#230#1")(::NTuple{4, X})
   from (::var"##dotfunction#230#1")(x1) @ Main none:0
 Arguments
