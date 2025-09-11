@@ -106,6 +106,22 @@ julia> y.x = 2
 2
 ```
 
+What if the function is inherently type-unstable? Well, just use another wrapped
+union as output!
+
+```julia
+julia> @wrapped struct Z <: WrappedUnion
+           union::Union{Bool, Int, BitVector, Vector{Int}}
+       end
+
+julia> f(x) = x * true;
+
+julia> f(x::X) = Z(@unionsplit f(x));
+
+julia> f.(xs) # this is now type-stable
+(Z(false), Z(1), Z(Bool[1, 0]), Z([1, 2]))
+```
+
 ## API
 
 ```
