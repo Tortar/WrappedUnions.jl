@@ -5,8 +5,8 @@
 [![Coverage](https://codecov.io/gh/Tortar/WrappedUnions.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Tortar/WrappedUnions.jl)
 [![Aqua](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-This package defines a minimalistic interface to work efficiently with Unions of types by wrapping them in a struct
-to enhance function calls with enforced union-splitting.
+This package offers a minimal interface to work efficiently with a `Union` of types wrapped into a struct,
+by allowing to enforce union-splitting at call site.
 
 ## Example
 
