@@ -78,7 +78,8 @@ Body::NTuple{4, Any}
 
 Notice the `NTuple{4, Any}` instead of `NTuple{4, Int64}`.
 
-Consider also that `@unionsplit` allows to easily forward calls any function such as `getproperty` or `setproperty!`
+Consider also that `@unionsplit` allows to easily forward calls of any function, such as `getproperty` or `setproperty!`
+as shown below
 
 ```julia
 julia> using WrappedUnions
