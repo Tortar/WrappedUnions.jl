@@ -45,15 +45,15 @@ function wrapped(expr)
         !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
         $expr
         if !isempty($type_params_unconstr)
-            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $WrappedUnions.uniontypes($(union.args[2]))
+            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $WrappedUnions.extract_types($(union.args[2]))
         else
-            wrappedtypes(wu::Type{$type_name}) = $WrappedUnions.uniontypes($(union.args[2]))
+            wrappedtypes(wu::Type{$type_name}) = $WrappedUnions.extract_types($(union.args[2]))
         end
         nothing
     end
 end
 
-@generated function uniontypes(t::Union)
+@generated function extract_types(t::Union)
     T = t.parameters[1]
     types = []
     while T isa Union
