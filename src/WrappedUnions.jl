@@ -1,7 +1,7 @@
 
 module WrappedUnions
 
-export WrappedUnion, iswrappedunion, wrappedtypes, unwrap, unionsplit, @unionsplit, @wrapped
+export WrappedUnion, iswrappedunion, uniontype, unwrap, unionsplit, @unionsplit, @wrapped
 
 """
     WrappedUnion <: Any
@@ -37,7 +37,6 @@ function wrapped(expr)
     fields = Base.remove_linenums!(expr.args[3]).args
     expr.args[1] == true && fields[1].head != :const && error("union field should be constant in a mutable struct")
     union = expr.args[1] == false ? fields[1] : fields[1].args[1]
-    union_types = union.args[2].args[2:end]
     if union.args[1] != :union || union.args[2].args[1] != :Union
         error("Struct should contain a unique field union::Union{...}")
     end
@@ -46,9 +45,9 @@ function wrapped(expr)
         !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
         $expr
         if !isempty($type_params_unconstr)
-            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = ($(union_types...),)
+            uniontype(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $(union.args[2])
         else
-            wrappedtypes(wu::Type{$type_name}) = ($(union_types...),)
+            uniontype(wu::Type{$type_name}) = $(union.args[2])
         end
         nothing
     end
@@ -117,11 +116,11 @@ Returns the instance contained in the wrapped union.
 unwrap(wu::WrappedUnion) = getfield(wu, :union)
 
 """
-    wrappedtypes(::Type{<:WrappedUnion})
+    uniontype(::Type{<:WrappedUnion})
 
-Returns the types composing the wrapped union.
+Returns the union type inside the wrapped union.
 """
-function wrappedtypes end
+function uniontype end
 
 precompile(wrapped, (Expr,))
 

@@ -40,8 +40,8 @@ julia> unwrap(xs[3])
 julia> iswrappedunion(typeof(xs[1]))
 true
 
-julia> wrappedtypes(typeof(xs[1]))
-(Bool, Int64, Vector{Bool}, Vector{Int64})
+julia> uniontype(typeof(xs[1]))
+Union{Bool, Int64, Vector{Bool}, Vector{Int64}}
 ```
 
 Let's verify that `splitsum` has been accurately inferred:
@@ -149,7 +149,7 @@ julia> f.(xs) # this is now type-stable
 
 - iswrappedunion(::Type{T})                        -> Returns true if the type is a wrapped union.
 
-- wrappedtypes(::Type{<:WrappedUnion})             -> Returns the types composing the wrapped union.
+- uniontype(::Type{<:WrappedUnion})                -> Returns the internal union inside the wrapped union.
 ```
 
 For more information, see the docstrings.
