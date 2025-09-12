@@ -51,6 +51,7 @@ splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
     @test unwrap(xs[3]) == [true, false]
     @test iswrappedunion(typeof(xs[1])) == true
     @test wrappedtypes(typeof(xs[1])) == (Bool, Int, Vector{Bool}, Vector{Int})
+    @test wrappedtypes(X{Int}) == (Int, Vector{Bool}, Vector{Int})
 
     @inferred Int splittedsum(xs[1])
     f(xs) = splittedsum.(xs)
