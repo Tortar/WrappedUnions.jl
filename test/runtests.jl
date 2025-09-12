@@ -3,7 +3,7 @@ using WrappedUnions
 
 using Aqua, Test
 
-@wrapped struct X <: WrappedUnion
+@wrapped struct X
     union::Union{Bool, Int, Vector{Bool}, Vector{Int}}
 end
 
