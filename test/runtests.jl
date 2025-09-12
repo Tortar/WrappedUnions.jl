@@ -10,8 +10,10 @@ end
 splittedsum(x) = @unionsplit sum(x)
 
 abstract type AbstractY <: WrappedUnion end
-@wrapped struct Y{A,B} <: AbstractY
-    union::Union{A, B, Int64}
+@wrapped mutable struct Y{A,B} <: AbstractY
+    const union::Union{A, B, Int64}
+    Y{A,B}(x) where {A,B} = new{A,B}(x)
+    Y(x::X) where X = new{typeof(x), Float64}(x)
 end
 
 sumt(x, y, z) = sum(x) + y + sum(z)
