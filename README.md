@@ -8,9 +8,9 @@
 This package offers a minimal interface to work efficiently with a `Union` of types wrapped into a struct
 by allowing to enforce union-splitting at call site.
 
-Two main macros provide the backbone of this package: `@wrapped` and `@unionsplit`. The first accept any
+Two main macros provide the backbone of this package: `@wrapped` and `@unionsplit`. The first accepts any
 parametric struct which has a single fields `union::Union` and whose abstract type is a subtype of 
-`WrappedUnion`, apart from that, it supports any standard struct feature as e.g. inner constructors.
+`WrappedUnion`, but, apart from that, it supports any standard struct feature as e.g. inner constructors.
 `@unionsplit` instead automatically executes a function performing union-splitting on the wrapped union
 arguments to make the call type-stable.
 
