@@ -28,7 +28,7 @@ end
 
 function wrapped(expr)
     expr.head != :struct && error("Expression is not a struct")
-    type = expr.args[2].args[1]
+    type = expr.args[2] isa Symbol ? expr.args[2] : expr.args[2].args[1]
     type_name = type isa Symbol ? type : type.args[1]
     type_params = type isa Expr && type.head == :curly ? type.args[2:end] : []
     type_params_unconstr = [(t isa Symbol ? t : t.args[1]) for t in type_params]
