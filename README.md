@@ -8,7 +8,13 @@
 This package offers a minimal interface to work efficiently with a `Union` of types wrapped into a struct
 by allowing to enforce union-splitting at call site.
 
-## Example
+Two main macros provide the backbone of this package: `@wrapped` and `@unionsplit`. The first accept any
+parametric struct which has a single fields `union::Union` and whose abstract type is a subtype of 
+`WrappedUnion`, apart from that, it supports any standard struct feature as e.g. inner constructors.
+`@unionsplit` instead automatically executes a function performing union-splitting on the wrapped union
+arguments to make the call type-stable.
+
+## Examples
 
 ```julia
 julia> using WrappedUnions
@@ -38,7 +44,7 @@ julia> wrappedtypes(typeof(xs[1]))
 (Bool, Int64, Vector{Bool}, Vector{Int64})
 ```
 
-Let's verify that `splittedsum` has been accurately inferred:
+Let's verify that `splitsum` has been accurately inferred:
 
 ```julia
 julia> @code_warntype splitsum.(xs)
@@ -48,7 +54,7 @@ Arguments
   #self#::Core.Const(var"##dotfunction#230#1"())
   x1::NTuple{4, X}
 Body::NTuple{4, Int64}
-1 ─ %1 = Base.broadcasted(Main.splittedsum, x1)::Base.Broadcast.Broadcasted{Base.Broadcast.Style{Tuple}, Nothing, typeof(splittedsum), Tuple{NTuple{4, X}}}
+1 ─ %1 = Base.broadcasted(Main.splitsum, x1)::Base.Broadcast.Broadcasted{Base.Broadcast.Style{Tuple}, Nothing, typeof(splitsum), Tuple{NTuple{4, X}}}
 │   %2 = Base.materialize(%1)::NTuple{4, Int64}
 └──      return %2
 ```
