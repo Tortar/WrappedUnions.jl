@@ -3,8 +3,12 @@ using WrappedUnions
 
 using Aqua, Test
 
-@wrapped struct X
-    union::Union{Bool, Int, Vector{Bool}, Vector{Int}}
+@wrapped struct K 
+    union::Union{Int}
+end
+
+@wrapped struct X{Z}
+    union::Union{Z, Int, Vector{Bool}, Vector{Int}}
 end
 
 splittedsum(x) = @unionsplit sum(x)
@@ -30,10 +34,19 @@ splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
 
     @test iswrappedunion(Int) == false
 
-    xs = [X(false), X(1), X([true, false]), X([1,2])]
+    k = K(1)
+
+    @test K <: WrappedUnion
+    @test typeof(k) == K
+    @test splittedsum(k) == 1
+    @test unwrap(k) == 1
+    @test iswrappedunion(typeof(k)) == true
+    @test wrappedtypes(typeof(k)) == (Int,)
+
+    xs = [X{Bool}(false), X{Bool}(1), X{Bool}([true, false]), X{Bool}([1,2])]
 
     @test X <: WrappedUnion
-    @test typeof(xs) == Vector{X}
+    @test typeof(xs) == Vector{X{Bool}}
     @test splittedsum.(xs) == [0, 1, 1, 3]
     @test unwrap(xs[3]) == [true, false]
     @test iswrappedunion(typeof(xs[1])) == true
