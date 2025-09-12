@@ -45,9 +45,9 @@ function wrapped(expr)
         !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
         $expr
         if !isempty($type_params_unconstr)
-            wrappedunion(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $(union.args[2])
+            uniontype(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $(union.args[2])
         else
-            wrappedunion(wu::Type{$type_name}) = $(union.args[2])
+            uniontype(wu::Type{$type_name}) = $(union.args[2])
         end
         nothing
     end
@@ -116,11 +116,11 @@ Returns the instance contained in the wrapped union.
 unwrap(wu::WrappedUnion) = getfield(wu, :union)
 
 """
-    wrappedtypes(::Type{<:WrappedUnion})
+    uniontype(::Type{<:WrappedUnion})
 
 Returns the union type inside the wrapped union.
 """
-function wrappedunion end
+function uniontype end
 
 precompile(wrapped, (Expr,))
 
