@@ -40,15 +40,14 @@ function wrapped(expr)
     if union.args[1] != :union || union.args[2].args[1] != :Union
         error("Struct should contain a unique field union::Union{...}")
     end
-    union_types = unique(union.args[2])
     expr.args[2] = (expr.args[2] isa Symbol || expr.args[2].head != :<:) ? Expr(:(<:), expr.args[2], abstract_type) : expr.args[2]
     return quote
         !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
         $expr
         if !isempty($type_params_unconstr)
-            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $WrappedUnions.uniontypes($(union_types))
+            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $WrappedUnions.uniontypes($(union.args[2]))
         else
-            wrappedtypes(wu::Type{$type_name}) = $WrappedUnions.uniontypes($(union_types))
+            wrappedtypes(wu::Type{$type_name}) = $WrappedUnions.uniontypes($(union.args[2]))
         end
         nothing
     end
