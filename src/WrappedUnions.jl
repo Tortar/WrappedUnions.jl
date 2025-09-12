@@ -1,7 +1,7 @@
 
 module WrappedUnions
 
-export WrappedUnion, iswrappedunion, wrappedunion, unwrap, unionsplit, @unionsplit, @wrapped
+export WrappedUnion, iswrappedunion, uniontype, unwrap, unionsplit, @unionsplit, @wrapped
 
 """
     WrappedUnion <: Any
