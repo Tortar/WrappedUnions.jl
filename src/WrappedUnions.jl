@@ -37,21 +37,32 @@ function wrapped(expr)
     fields = Base.remove_linenums!(expr.args[3]).args
     expr.args[1] == true && fields[1].head != :const && error("union field should be constant in a mutable struct")
     union = expr.args[1] == false ? fields[1] : fields[1].args[1]
-    union_types = unique(union.args[2].args[2:end])
     if union.args[1] != :union || union.args[2].args[1] != :Union
         error("Struct should contain a unique field union::Union{...}")
     end
+    union_types = unique(union.args[2])
     expr.args[2] = (expr.args[2] isa Symbol || expr.args[2].head != :<:) ? Expr(:(<:), expr.args[2], abstract_type) : expr.args[2]
     return quote
         !($abstract_type <: $WrappedUnion) && error("Abstract type of struct should be a subtype of WrappedUnion")
         $expr
         if !isempty($type_params_unconstr)
-            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = ($(union_types...),)
+            wrappedtypes(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $WrappedUnions.uniontypes($(union_types))
         else
-            wrappedtypes(wu::Type{$type_name}) = ($(union_types...),)
+            wrappedtypes(wu::Type{$type_name}) = $WrappedUnions.uniontypes($(union_types))
         end
         nothing
     end
+end
+
+@generated function uniontypes(t::Union)
+    T = t.parameters[1]
+    types = []
+    while T isa Union
+        push!(types, T.a)
+        T = T.b
+    end
+    push!(types, T)
+    return :(($(types...),))
 end
 
 """
