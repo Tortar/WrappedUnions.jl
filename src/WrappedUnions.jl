@@ -71,7 +71,7 @@ Executes the function performing union-splitting on the wrapped union arguments.
 This means that if the function has a unique return type, the function call will
 be type-stable.
 """
-@generated function unionsplit(f::Union{Type,Function}, args::Tuple)
+@generated function unionsplit(f::F, args::Tuple) where {F}
     args = fieldtypes(args)
     wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if T <: WrappedUnion]
     final_args = Any[:(args[$i]) for i in 1:length(args)]
@@ -79,7 +79,8 @@ be type-stable.
         final_args[idx] = Symbol("v_", idx)
     end
     
-    body = :(f($(final_args...)))
+    func = F <: WrappedUnion ? :(unwrap(f)) : (:f)
+    body = :($func($(final_args...)))
     for (idx, T) in reverse(wrappedunion_args)
         unwrapped_var = Symbol("v_", idx)
         wrapped_types = Base.uniontypes(fieldtype(T, 1))
