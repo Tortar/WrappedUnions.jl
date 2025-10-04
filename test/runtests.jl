@@ -36,7 +36,7 @@ splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
 
     k = K(1)
 
-    @test K <: WrappedUnion
+    @test !(K <: WrappedUnion)
     @test typeof(k) == K
     @test splittedsum(k) == 1
     @test unwrap(k) == 1
@@ -45,7 +45,7 @@ splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
 
     xs = [X{Bool}(false), X{Bool}(1), X{Bool}([true, false]), X{Bool}([1,2])]
 
-    @test X <: WrappedUnion
+    @test !(X <: WrappedUnion)
     @test typeof(xs) == Vector{X{Bool}}
     @test splittedsum.(xs) == [0, 1, 1, 3]
     @test unwrap(xs[3]) == [true, false]
