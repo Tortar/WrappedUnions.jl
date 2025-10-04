@@ -134,8 +134,8 @@ julia> f.(xs) # this is now type-stable
 ## API
 
 ```
-- WrappedUnion                                     -> Abstract type all new wrapped union are 
-                                                      subtype of.
+- WrappedUnion                                     -> Abstract type which could be optionally used as 
+                                                      a supertype of wrapped unions.
 
 - @wrapped struct ... end                          -> Creates a wrapped union.
 
