@@ -118,7 +118,7 @@ Returns the instance contained in the wrapped union.
 unwrap(wu) = getfield(wu, __FIELDNAME__)
 
 """
-    uniontype(::Type{<:WrappedUnion})
+    uniontype(::Type)
 
 Returns the union type inside the wrapped union.
 """
