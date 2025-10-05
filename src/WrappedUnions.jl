@@ -40,7 +40,9 @@ function wrapped(expr)
     if union.args[1] != :union || union.args[2].args[1] != :Union
         error("Struct should contain a unique field union::Union{...}")
     end
-    expr.args[end].args[1].args[1] = __FIELDNAME__
+    args = expr.args[end].args[1].args
+    args = expr.args[end].args[1].head == :(::) ? args : args[1].args
+    args[1] = __FIELDNAME__
     return quote
         $expr
         if !isempty($type_params_unconstr)
