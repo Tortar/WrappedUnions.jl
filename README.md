@@ -146,9 +146,9 @@ julia> f.(xs) # this is now type-stable
 - unwrap(::WrappedUnion)                           -> Returns the instance contained in the wrapped
                                                       union.
 
-- iswrappedunion(::Type{T})                        -> Returns true if the type is a wrapped union.
+- iswrappedunion(::Type)                          -> Returns true if the type is a wrapped union.
 
-- uniontype(::Type{<:WrappedUnion})                -> Returns the internal union inside the wrapped union.
+- uniontype(::Type)                               -> Returns the internal union inside the wrapped union.
 ```
 
 For more information, see the docstrings.
