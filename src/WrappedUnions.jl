@@ -14,7 +14,7 @@ wrapped unions.
 abstract type WrappedUnion end
 
 """
-    @wrapped struct Name{Params...} <: SubTypeWrappedUnion
+    @wrapped struct Name{Params...} <: AbstractType
         union::Union{Types...}
         InnerConstructors...
     end
@@ -22,8 +22,7 @@ abstract type WrappedUnion end
 Creates a wrapped union. `expr` must be a standard struct
 instantiation syntax, e.g. inner constructors can be arbitrary.
 However, it accepts only structs with a single field which must
-be `union::Union{...}` and whose abstract type is a subtype of
-`WrappedUnion`.
+be `union::Union{...}`.
 """
 macro wrapped(expr)
     return esc(wrapped(expr))
@@ -139,14 +138,14 @@ call will be type-stable.
 end
 
 """
-    unwrap(wu::WrappedUnion)
+    unwrap(wu)
 
 Returns the instance contained in the wrapped union.
 """
 unwrap(wu) = getfield(wu, __FIELDNAME__)
 
 """
-    uniontype(::Type{<:WrappedUnion})
+    uniontype(::Type)
 
 Returns the union type inside the wrapped union.
 """
