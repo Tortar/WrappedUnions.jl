@@ -20,8 +20,8 @@ abstract type AbstractY <: WrappedUnion end
     Y(x::X) where X = new{typeof(x), Float64}(x)
 end
 
-sumt(x, y, z) = sum(x) + y + sum(z)
-splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
+sumt(x, y, z; q, t) = sum(x) + y + sum(z) + sum(q) + t
+splittedsum(x::Y{A,B}, y, z::X; q::X, t) where {A,B} = @unionsplit sumt(x, y, z; q, t)
 
 @testset "WrappedUnions.jl" begin
     
@@ -60,12 +60,12 @@ splittedsum(x::Y{A,B}, y, z::X) where {A,B} = @unionsplit sumt(x, y, z)
 
     @test Y <: AbstractY && AbstractY <: WrappedUnion
     @test typeof(ys) == Vector{Y{Vector{Int}, Vector{Bool}}}
-    @test splittedsum.(ys, 2, xs) == [3, 5, 4, 8]
+    @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [5, 7, 6, 10]
     @test unwrap(ys[1]) == 1
     @test iswrappedunion(typeof(ys[1])) == true
     @test uniontype(typeof(ys[1])) == Union{Vector{Int}, Vector{Bool}, Int64}
 
-    @inferred Int splittedsum(ys[1], 2, xs[1])
+    @inferred Int splittedsum(ys[1], 2, xs[1]; q=xs[1], t=1)
     f(ys, z, xs) = splittedsum.(xs)
     @inferred Vector{Int} f(ys, 2, xs)
 end

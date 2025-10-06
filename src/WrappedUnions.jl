@@ -14,7 +14,7 @@ wrapped unions.
 abstract type WrappedUnion end
 
 """
-    @wrapped struct Name{Params...} <: AbstractType
+    @wrapped struct Name{Params...} <: SubTypeWrappedUnion
         union::Union{Types...}
         InnerConstructors...
     end
@@ -22,7 +22,8 @@ abstract type WrappedUnion end
 Creates a wrapped union. `expr` must be a standard struct
 instantiation syntax, e.g. inner constructors can be arbitrary.
 However, it accepts only structs with a single field which must
-be `union::Union{...}`.
+be `union::Union{...}` and whose abstract type is a subtype of
+`WrappedUnion`.
 """
 macro wrapped(expr)
     return esc(wrapped(expr))
@@ -64,62 +65,88 @@ function iswrappedunion(::Type{T}) where T
 end
 
 """
-    @unionsplit f(args...)
+    @unionsplit f(args...; kwargs...)
 
-Calls `unionsplit(f, args)`. See its docstring for further information.
+Calls `unionsplit(f, args, kwargs)`. See its docstring for further information.
 """
 macro unionsplit(expr)
     expr.head != :call && error("Expression is not a function call")
-    f, args = expr.args[1], expr.args[2:end]
-    return esc(quote $WrappedUnions.unionsplit($f, ($(args...),)) end)
+    f = expr.args[1]
+    if expr.args[2] isa Expr && expr.args[2].head == :parameters
+        pos_args, kw_args = expr.args[3:end], expr.args[2].args
+    else
+        pos_args, kw_args = expr.args[2:end], []
+    end
+    return esc(quote
+        $WrappedUnions.unionsplit($f, ($(pos_args...),), (;$(kw_args...)))
+    end)
 end
 
-"""
-    unionsplit(f::Union{Type,Function}, args::Tuple)
 
-Executes the function performing union-splitting on the wrapped union arguments.
-This means that if the function has a unique return type, the function call will
-be type-stable.
 """
-@generated function unionsplit(f::F, args::Tuple) where {F}
-    args = fieldtypes(args)
-    wrappedunion_args = [(i, T) for (i, T) in enumerate(args) if iswrappedunion(T)]
-    final_args = Any[:(args[$i]) for i in 1:length(args)]
-    for (idx, T) in wrappedunion_args
-        final_args[idx] = Symbol("v_", idx)
+    unionsplit(f::Union{Type,Function}, args::Tuple, kwargs::NamedTuple)
+
+Executes the function performing union-splitting on the wrapped union arguments
+passed as either positional `args` or keyword `kwargs`. This means that if the
+function has a unique return type for each combination of unwrapped types, the
+call will be type-stable.
+"""
+@generated function unionsplit(f::F, args::Tuple, kwargs::NamedTuple) where {F}
+    pos_arg_types = fieldtypes(args)
+    kw_arg_types = fieldtypes(kwargs)
+    kw_arg_names = fieldnames(kwargs)
+    wrappedunion_args = []
+    for (i, T) in enumerate(pos_arg_types)
+        if iswrappedunion(T)
+            push!(wrappedunion_args, (:pos, i, T))
+        end
     end
-    
-    func = iswrappedunion(F) ? :(unwrap(f)) : (:f)
-    body = :($func($(final_args...)))
-    for (idx, T) in reverse(wrappedunion_args)
-        unwrapped_var = Symbol("v_", idx)
+    for (i, T) in enumerate(kw_arg_types)
+        if iswrappedunion(T)
+            name = kw_arg_names[i]
+            push!(wrappedunion_args, (:kw, name, T))
+        end
+    end
+    final_pos_args = Any[:(args[$i]) for i in 1:length(pos_arg_types)]
+    final_kw_args_map = Dict{Any, Any}(name => :(kwargs.$name) for name in kw_arg_names)
+    for (source, id, T) in wrappedunion_args
+        var_name = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
+        if source == :pos
+            final_pos_args[id] = var_name
+        else
+            final_kw_args_map[id] = var_name
+        end
+    end
+    final_kw_args = [Expr(:kw, name, val) for (name, val) in final_kw_args_map]
+    func = iswrappedunion(F) ? :(unwrap(f)) : :f
+    body = :($func($(final_pos_args...); $(final_kw_args...)))
+    for (source, id, T) in reverse(wrappedunion_args)
+        unwrapped_var = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
+        original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
         wrapped_types = Base.uniontypes(fieldtype(T, 1))
-        
         branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
         for V_type in reverse(wrapped_types)
             condition = :($unwrapped_var isa $V_type)
             branch_expr = Expr(:elseif, condition, body, branch_expr)
         end
         branch_expr = Expr(:if, branch_expr.args...)
-        
         body = quote
-            let $(unwrapped_var) = unwrap(args[$idx])
-                $branch_expr
-            end
+            $unwrapped_var = unwrap($original_arg)
+            $branch_expr
         end
     end
     return body
 end
 
 """
-    unwrap(wu)
+    unwrap(wu::WrappedUnion)
 
 Returns the instance contained in the wrapped union.
 """
 unwrap(wu) = getfield(wu, __FIELDNAME__)
 
 """
-    uniontype(::Type)
+    uniontype(::Type{<:WrappedUnion})
 
 Returns the union type inside the wrapped union.
 """

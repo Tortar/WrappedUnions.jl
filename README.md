@@ -138,17 +138,19 @@ julia> f.(xs) # this is now type-stable
 
 - @wrapped struct ... end                          -> Creates a wrapped union.
 
-- unionsplit(f::Union{Type,Function}, args::Tuple) -> Executes the function performing union-splitting
-                                                      on the wrapped union arguments.
+- unionsplit(f::Union{Type,Function}, 
+             args::Tuple, 
+             kwargs::NamedTuple)                   -> Executes the function performing union-splitting
+                                                      on the wrapped union arguments and keyword arguments.
 
-- @unionsplit f(args...)                           -> Calls `unionsplit(f, args)`.
+- @unionsplit f(args...; kwargs...)                -> Calls `unionsplit(f, args, kwargs)`.
 
 - unwrap(::WrappedUnion)                           -> Returns the instance contained in the wrapped
                                                       union.
 
-- iswrappedunion(::Type)                          -> Returns true if the type is a wrapped union.
+- iswrappedunion(::Type)                           -> Returns true if the type is a wrapped union.
 
-- uniontype(::Type)                               -> Returns the internal union inside the wrapped union.
+- uniontype(::Type)                                -> Returns the internal union inside the wrapped union.
 ```
 
 For more information, see the docstrings.
