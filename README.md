@@ -145,7 +145,7 @@ julia> f.(xs) # this is now type-stable
 
 - @unionsplit f(args...; kwargs...)                -> Calls `unionsplit(f, args, kwargs)`.
 
-- unwrap(::WrappedUnion)                           -> Returns the instance contained in the wrapped
+- unwrap(wu)                                       -> Returns the instance contained in the wrapped
                                                       union.
 
 - iswrappedunion(::Type)                           -> Returns true if the type is a wrapped union.
