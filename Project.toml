@@ -1,7 +1,7 @@
 name = "WrappedUnions"
 uuid = "325db55a-9c6c-5b90-b1a2-ec87e7a38c44"
 authors = ["Adriano Meligrana <adrianomeligrana@proton.me>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [compat]
 julia = "1"
