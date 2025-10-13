@@ -35,7 +35,7 @@ function wrapped(expr)
     expr.args[1] == true && fields[1].head != :const && error("union field should be constant in a mutable struct")
     union = expr.args[1] == false ? fields[1] : fields[1].args[1]
 
-    if union.args[1] != :union # || union.args[2].args[1] != :Union
+    if union.args[1] != :union
         error("Struct should contain a field named `union`")
     end
     args = expr.args[end].args[1].args
