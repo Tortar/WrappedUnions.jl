@@ -30,10 +30,7 @@ end
 
 function wrapped(expr)
     expr.head != :struct && error("Expression is not a struct")
-    type = (expr.args[2] isa Symbol || expr.args[2].head != :<:) ? expr.args[2] : expr.args[2].args[1]
-    type_name = type isa Symbol ? type : type.args[1]
-    type_params = type isa Expr && type.head == :curly ? type.args[2:end] : []
-    type_params_unconstr = [(t isa Symbol ? t : t.args[1]) for t in type_params]
+
     fields = Base.remove_linenums!(expr.args[3]).args
     expr.args[1] == true && fields[1].head != :const && error("union field should be constant in a mutable struct")
     union = expr.args[1] == false ? fields[1] : fields[1].args[1]
@@ -43,14 +40,9 @@ function wrapped(expr)
     args = expr.args[end].args[1].args
     args = expr.args[end].args[1].head == :(::) ? args : args[1].args
     args[1] = __FIELDNAME__
+
     return quote
         Core.@__doc__ $expr
-        if !isempty($type_params_unconstr)
-            uniontype(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $(union.args[2])
-        else
-            uniontype(wu::Type{$type_name}) = $(union.args[2])
-        end
-        nothing
     end
 end
 
@@ -149,7 +141,8 @@ unwrap(wu) = getfield(wu, __FIELDNAME__)
 
 Returns the union type inside the wrapped union.
 """
-function uniontype end
+uniontype(T::Type) = fieldtype(T, __FIELDNAME__)
+uniontype(::T) where {T} = uniontype(T)
 
 precompile(wrapped, (Expr,))
 
