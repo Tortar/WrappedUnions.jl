@@ -44,7 +44,7 @@ function wrapped(expr)
     args = expr.args[end].args[1].head == :(::) ? args : args[1].args
     args[1] = __FIELDNAME__
     return quote
-        $expr
+        Core.@__doc__ $expr
         if !isempty($type_params_unconstr)
             uniontype(wu::Type{$type_name{$(type_params_unconstr...)}}) where {$(type_params...)} = $(union.args[2])
         else
