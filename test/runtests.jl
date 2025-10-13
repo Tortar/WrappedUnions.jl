@@ -24,6 +24,10 @@ end
 sumt(x, y, z; q, t) = sum(x) + y + sum(z) + sum(q) + t
 splittedsum(x::Y{A,B}, y, z::X; q::X, t) where {A,B} = @unionsplit sumt(x, y, z; q, t)
 
+@wrapped struct OpenUnion{U}
+    union::U
+end
+
 @testset "WrappedUnions.jl" begin
     
     if "CI" in keys(ENV)
@@ -70,4 +74,14 @@ splittedsum(x::Y{A,B}, y, z::X; q::X, t) where {A,B} = @unionsplit sumt(x, y, z;
     @inferred Int splittedsum(ys[1], 2, xs[1]; q=xs[1], t=1)
     f(ys, z, xs) = splittedsum.(xs)
     @inferred Vector{Int} f(ys, 2, xs)
+
+    @test iswrappedunion(OpenUnion{Union{Nothing, Char, Int, Float64}})
+
+    ou = OpenUnion{Union{Nothing, Char, Int, Float64}}('c')
+    @test unwrap(ou) == 'c'
+    @test uniontype(ou) == Union{Nothing, Char, Int, Float64}
+
+    ou2 = OpenUnion{Union{Nothing, Char, Int, Float64}}(5)
+    @test unwrap(ou2) == 5
+    @test uniontype(ou2) == Union{Nothing, Char, Int, Float64}
 end
