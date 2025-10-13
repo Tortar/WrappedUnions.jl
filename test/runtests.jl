@@ -3,6 +3,7 @@ using WrappedUnions
 
 using Aqua, Test
 
+"docstring"
 @wrapped struct K 
     union::Union{Int}
 end
@@ -42,6 +43,7 @@ splittedsum(x::Y{A,B}, y, z::X; q::X, t) where {A,B} = @unionsplit sumt(x, y, z;
     @test unwrap(k) == 1
     @test iswrappedunion(typeof(k)) == true
     @test uniontype(typeof(k)) == Union{Int}
+    @test Docs.hasdoc(@__MODULE__, :K)
 
     xs = [X{Bool}(false), X{Bool}(1), X{Bool}([true, false]), X{Bool}([1,2])]
 
