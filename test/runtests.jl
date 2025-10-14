@@ -64,6 +64,7 @@ end
 
     ys = [Y{Vector{Int}, Vector{Bool}}(1), Y{Vector{Int}, Vector{Bool}}(2), Y{Vector{Int}, Vector{Bool}}([true, false]), Y{Vector{Int}, Vector{Bool}}([1,2])]
 
+    println(ys)
     @test Y <: AbstractY && AbstractY <: WrappedUnion
     @test typeof(ys) == Vector{Y{Vector{Int}, Vector{Bool}}}
     @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [5, 7, 6, 10]
@@ -73,7 +74,8 @@ end
 
     setfield!(ys[1], 1, [true, false])
     setfield!(ys[3], 1, 1)
-    
+
+    println(ys)
     @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [6, 7, 5, 10]
     @test unwrap(ys[1]) == [true, false]
     @test iswrappedunion(typeof(ys[1])) == true
