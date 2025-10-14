@@ -74,7 +74,7 @@ end
     setfield!(ys[1], 1, [true, false])
     setfield!(ys[3], 1, 1)
     
-    @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [7, 5, 6, 10]
+    @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [6, 7, 5, 10]
     @test unwrap(ys[1]) == [true, false]
     @test iswrappedunion(typeof(ys[1])) == true
     @test uniontype(typeof(ys[1])) == Union{Vector{Int}, Vector{Bool}, Int64}
