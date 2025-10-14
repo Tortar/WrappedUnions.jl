@@ -32,8 +32,7 @@ function wrapped(expr)
     expr.head != :struct && error("Expression is not a struct")
 
     fields = Base.remove_linenums!(expr.args[3]).args
-    expr.args[1] == true && fields[1].head != :const && error("union field should be constant in a mutable struct")
-    union = expr.args[1] == false ? fields[1] : fields[1].args[1]
+    union = expr.args[end].args[1].head != :const ? fields[1] : fields[1].args[1]
 
     if union.args[1] != :union
         error("Struct should contain a field named `union`")

@@ -16,7 +16,7 @@ splittedsum(x) = @unionsplit sum(x)
 
 abstract type AbstractY <: WrappedUnion end
 @wrapped mutable struct Y{A,B} <: AbstractY
-    const union::Union{A, B, Int64}
+    union::Union{A, B, Int64}
     Y{A,B}(x) where {A,B} = new{A,B}(x)
     Y(x::X) where X = new{typeof(x), Float64}(x)
 end
@@ -62,12 +62,20 @@ end
     f(xs) = splittedsum.(xs)
     @inferred Vector{Int} f(xs)
 
-    ys = [Y{Vector{Int}, Vector{Bool}}(1), Y{Vector{Int}, Vector{Bool}}(2), Y{Vector{Int}, Vector{Bool}}([true, false]), Y{Vector{Int}, Vector{Bool}}([1,2])]
+    ys = [Y{Vector{Int}, Vector{Bool}}(1), Y{Vector{Int}, Vector{Bool}}(2), Y{Vector{Int}, Vector{Bool}}([true, true]), Y{Vector{Int}, Vector{Bool}}([1,2])]
 
     @test Y <: AbstractY && AbstractY <: WrappedUnion
     @test typeof(ys) == Vector{Y{Vector{Int}, Vector{Bool}}}
-    @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [5, 7, 6, 10]
+    @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [5, 7, 7, 10]
     @test unwrap(ys[1]) == 1
+    @test iswrappedunion(typeof(ys[1])) == true
+    @test uniontype(typeof(ys[1])) == Union{Vector{Int}, Vector{Bool}, Int64}
+
+    setfield!(ys[1], 1, [true, true])
+    setfield!(ys[3], 1, 1)
+
+    @test splittedsum.(ys, 2, xs; q=xs[2], t=1) == [6, 7, 6, 10]
+    @test unwrap(ys[1]) == [true, true]
     @test iswrappedunion(typeof(ys[1])) == true
     @test uniontype(typeof(ys[1])) == Union{Vector{Int}, Vector{Bool}, Int64}
 
