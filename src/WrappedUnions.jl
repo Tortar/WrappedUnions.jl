@@ -63,14 +63,7 @@ Calls `unionsplit(f, args, kwargs; recursive=recursive)`. See its docstring for 
 The optional `recursive` parameter can be specified as `@unionsplit recursive=true f(...)`.
 """
 macro unionsplit(expr)
-    if expr.head == :(=) && expr.args[1] == :recursive
-        # Handle @unionsplit recursive=true/false f(...)
-        recursive = expr.args[2]
-        call_expr = nothing
-        return esc(quote
-            error("@unionsplit recursive=... syntax requires a function call after it")
-        end)
-    elseif expr.head != :call
+    if expr.head != :call
         error("Expression is not a function call")
     end
     
@@ -102,33 +95,27 @@ macro unionsplit(recursive_expr, call_expr)
     else
         pos_args, kw_args = call_expr.args[2:end], []
     end
+    recursive_val = recursive ? :(Val(true)) : :(Val(false))
     return esc(quote
-        $WrappedUnions.unionsplit($f, ($(pos_args...),), (;$(kw_args...)); recursive=$recursive)
+        $WrappedUnions.unionsplit($f, ($(pos_args...),), (;$(kw_args...)); recursive=$recursive_val)
     end)
 end
 
 
 """
-    unionsplit(f::Union{Type,Function}, args::Tuple, kwargs::NamedTuple; recursive::Bool=false)
+    unionsplit(f::Union{Type,Function}, args::Tuple, kwargs::NamedTuple; recursive=Val(false))
 
 Executes the function performing union-splitting on the wrapped union arguments
 passed as either positional `args` or keyword `kwargs`. This means that if the
 function has a unique return type for each combination of unwrapped types, the
 call will be type-stable.
 
-If `recursive=true`, wrapped unions nested within other wrapped unions will be 
+If `recursive=Val(true)`, wrapped unions nested within other wrapped unions will be 
 recursively unwrapped. This allows handling cases where a wrapped union contains
 other wrapped unions.
 """
-function unionsplit(f::F, args::Tuple, kwargs::NamedTuple; recursive::Bool=false) where {F}
-    if recursive
-        return unionsplit(Val(true), f, args, kwargs)
-    else
-        return unionsplit(Val(false), f, args, kwargs)
-    end
-end
-
-@generated function unionsplit(::Val{RECURSIVE}, f::F, args::Tuple, kwargs::NamedTuple) where {RECURSIVE, F}
+@generated function unionsplit(f::F, args::Tuple, kwargs::NamedTuple; recursive=Val(false)) where {F}
+    RECURSIVE = recursive <: Val{true}
     pos_arg_types = fieldtypes(args)
     kw_arg_types = fieldtypes(kwargs)
     kw_arg_names = fieldnames(kwargs)
