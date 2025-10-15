@@ -132,6 +132,52 @@ function _collect_wrapped_types(T, recursive_flag)
     return [t for (t, _) in types_with_depth]
 end
 
+# Helper function to build nested branches for recursive unwrapping
+function _build_recursive_branches(T, unwrapped_var, current_expr, body)
+    if !iswrappedunion(T)
+        # Base case: not a wrapped union, just assign and use body
+        return quote
+            $unwrapped_var = $current_expr
+            $body
+        end
+    end
+    
+    # Create a temporary variable to store the unwrapped value at this level
+    temp_var = gensym("level")
+    
+    # Unwrap once at this level
+    inner_union = fieldtype(T, 1)
+    union_types = Base.uniontypes(inner_union)
+    
+    # Build branches for each type in the union at this level
+    branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
+    
+    for U in reverse(union_types)
+        if iswrappedunion(U)
+            # This branch contains another wrapped union - recurse deeper
+            nested_body = _build_recursive_branches(U, unwrapped_var, temp_var, body)
+            condition = :($temp_var isa $U)
+            branch_expr = Expr(:elseif, condition, nested_body, branch_expr)
+        else
+            # This is a primitive type - assign to final variable and execute body
+            type_body = quote
+                $unwrapped_var = $temp_var
+                $body
+            end
+            condition = :($temp_var isa $U)
+            branch_expr = Expr(:elseif, condition, type_body, branch_expr)
+        end
+    end
+    
+    branch_expr = Expr(:if, branch_expr.args...)
+    
+    # Wrap the branching in an unwrap operation
+    return quote
+        $temp_var = unwrap($current_expr)
+        $branch_expr
+    end
+end
+
 """
     unionsplit(f::Union{Type,Function}, args::Tuple, kwargs::NamedTuple; recursive=Val(false))
 
@@ -180,35 +226,8 @@ other wrapped unions.
         original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
         
         if RECURSIVE
-            # Get types with their unwrap depths
-            types_with_depth = _collect_wrapped_types_with_depth(T, true)
-            branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
-            
-            # Build branches for each type, generating the appropriate number of unwraps
-            for (V_type, depth) in reverse(types_with_depth)
-                # Generate unwrap expression for this specific depth
-                unwrap_expr = original_arg
-                for _ in 1:depth
-                    unwrap_expr = :(unwrap($unwrap_expr))
-                end
-                
-                # Create a condition that checks the type after unwrapping
-                temp_var = gensym("temp")
-                condition_body = quote
-                    $temp_var = $unwrap_expr
-                    $temp_var isa $V_type
-                end
-                
-                # Build the branch for this type
-                type_body = quote
-                    $unwrapped_var = $unwrap_expr
-                    $body
-                end
-                
-                branch_expr = Expr(:elseif, condition_body, type_body, branch_expr)
-            end
-            branch_expr = Expr(:if, branch_expr.args...)
-            body = branch_expr
+            # Build nested branches, unwrapping at each level
+            body = _build_recursive_branches(T, unwrapped_var, original_arg, body)
         else
             wrapped_types = _collect_wrapped_types(T, false)
             branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
