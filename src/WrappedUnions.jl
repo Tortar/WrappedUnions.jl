@@ -55,6 +55,17 @@ function iswrappedunion(::Type{T}) where T
     return isstructtype(T) && fieldcount(T) == 1 && fieldname(T, 1) == __FIELDNAME__
 end
 
+# Helper function to parse function call expression for @unionsplit macro
+function _parse_unionsplit_call(call_expr)
+    f = call_expr.args[1]
+    if call_expr.args[2] isa Expr && call_expr.args[2].head == :parameters
+        pos_args, kw_args = call_expr.args[3:end], call_expr.args[2].args
+    else
+        pos_args, kw_args = call_expr.args[2:end], []
+    end
+    return f, pos_args, kw_args
+end
+
 """
     @unionsplit [recursive=false] f(args...; kwargs...)
 
@@ -67,12 +78,7 @@ macro unionsplit(expr)
         error("Expression is not a function call")
     end
     
-    f = expr.args[1]
-    if expr.args[2] isa Expr && expr.args[2].head == :parameters
-        pos_args, kw_args = expr.args[3:end], expr.args[2].args
-    else
-        pos_args, kw_args = expr.args[2:end], []
-    end
+    f, pos_args, kw_args = _parse_unionsplit_call(expr)
     return esc(quote
         $WrappedUnions.unionsplit($f, ($(pos_args...),), (;$(kw_args...)))
     end)
@@ -89,18 +95,42 @@ macro unionsplit(recursive_expr, call_expr)
         error("Second argument must be a function call")
     end
     
-    f = call_expr.args[1]
-    if call_expr.args[2] isa Expr && call_expr.args[2].head == :parameters
-        pos_args, kw_args = call_expr.args[3:end], call_expr.args[2].args
-    else
-        pos_args, kw_args = call_expr.args[2:end], []
-    end
+    f, pos_args, kw_args = _parse_unionsplit_call(call_expr)
     recursive_val = recursive ? :(Val(true)) : :(Val(false))
     return esc(quote
         $WrappedUnions.unionsplit($f, ($(pos_args...),), (;$(kw_args...)); recursive=$recursive_val)
     end)
 end
 
+
+# Helper function to recursively collect wrapped union types with their unwrap depths
+function _collect_wrapped_types_with_depth(T, recursive_flag, current_depth=0)
+    if !iswrappedunion(T)
+        return [(T, current_depth)]
+    end
+    inner_union = fieldtype(T, 1)
+    union_types = Base.uniontypes(inner_union)
+    if !recursive_flag
+        return [(U, 1) for U in union_types]
+    end
+    # Recursively expand any wrapped unions within the union
+    result = []
+    for U in union_types
+        if iswrappedunion(U)
+            nested_types = _collect_wrapped_types_with_depth(U, true, current_depth + 1)
+            append!(result, nested_types)
+        else
+            push!(result, (U, current_depth + 1))
+        end
+    end
+    return result
+end
+
+# Helper function to recursively collect wrapped union types
+function _collect_wrapped_types(T, recursive_flag)
+    types_with_depth = _collect_wrapped_types_with_depth(T, recursive_flag)
+    return [t for (t, _) in types_with_depth]
+end
 
 """
     unionsplit(f::Union{Type,Function}, args::Tuple, kwargs::NamedTuple; recursive=Val(false))
@@ -119,28 +149,6 @@ other wrapped unions.
     pos_arg_types = fieldtypes(args)
     kw_arg_types = fieldtypes(kwargs)
     kw_arg_names = fieldnames(kwargs)
-    
-    # Helper function to recursively collect wrapped union types
-    function collect_wrapped_types(T, recursive_flag)
-        if !iswrappedunion(T)
-            return [T]
-        end
-        inner_union = fieldtype(T, 1)
-        union_types = Base.uniontypes(inner_union)
-        if !recursive_flag
-            return union_types
-        end
-        # Recursively expand any wrapped unions within the union
-        result = []
-        for U in union_types
-            if iswrappedunion(U)
-                append!(result, collect_wrapped_types(U, true))
-            else
-                push!(result, U)
-            end
-        end
-        return result
-    end
     
     wrappedunion_args = []
     for (i, T) in enumerate(pos_arg_types)
@@ -170,23 +178,45 @@ other wrapped unions.
     for (source, id, T) in reverse(wrappedunion_args)
         unwrapped_var = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
         original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
-        wrapped_types = collect_wrapped_types(T, RECURSIVE)
-        branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
-        for V_type in reverse(wrapped_types)
-            condition = :($unwrapped_var isa $V_type)
-            branch_expr = Expr(:elseif, condition, body, branch_expr)
-        end
-        branch_expr = Expr(:if, branch_expr.args...)
+        
         if RECURSIVE
-            # For recursive mode, we need to recursively unwrap
-            body = quote
-                $unwrapped_var = unwrap($original_arg)
-                while iswrappedunion(typeof($unwrapped_var))
-                    $unwrapped_var = unwrap($unwrapped_var)
+            # Get types with their unwrap depths
+            types_with_depth = _collect_wrapped_types_with_depth(T, true)
+            branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
+            
+            # Build branches for each type, generating the appropriate number of unwraps
+            for (V_type, depth) in reverse(types_with_depth)
+                # Generate unwrap expression for this specific depth
+                unwrap_expr = original_arg
+                for _ in 1:depth
+                    unwrap_expr = :(unwrap($unwrap_expr))
                 end
-                $branch_expr
+                
+                # Create a condition that checks the type after unwrapping
+                temp_var = gensym("temp")
+                condition_body = quote
+                    $temp_var = $unwrap_expr
+                    $temp_var isa $V_type
+                end
+                
+                # Build the branch for this type
+                type_body = quote
+                    $unwrapped_var = $unwrap_expr
+                    $body
+                end
+                
+                branch_expr = Expr(:elseif, condition_body, type_body, branch_expr)
             end
+            branch_expr = Expr(:if, branch_expr.args...)
+            body = branch_expr
         else
+            wrapped_types = _collect_wrapped_types(T, false)
+            branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
+            for V_type in reverse(wrapped_types)
+                condition = :($unwrapped_var isa $V_type)
+                branch_expr = Expr(:elseif, condition, body, branch_expr)
+            end
+            branch_expr = Expr(:if, branch_expr.args...)
             body = quote
                 $unwrapped_var = unwrap($original_arg)
                 $branch_expr
