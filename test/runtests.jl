@@ -92,4 +92,71 @@ end
     ou2 = OpenUnion{Union{Nothing, Char, Int, Float64}}(5)
     @test unwrap(ou2) == 5
     @test uniontype(ou2) == Union{Nothing, Char, Int, Float64}
+
+    @testset "Recursive union splitting" begin
+        # Define nested wrapped unions
+        @wrapped struct Inner
+            union::Union{Int, Float64}
+        end
+
+        @wrapped struct Outer
+            union::Union{Inner, String}
+        end
+
+        # Test helper function
+        process(x::Int) = x * 2
+        process(x::Float64) = x * 2.0
+        process(x::String) = length(x)
+
+        # Functions with recursive and non-recursive splitting
+        process_recursive(x) = @unionsplit recursive=true process(x)
+        process_nonrecursive(x) = @unionsplit process(x)
+
+        # Create test instances
+        inner_int = Inner(5)
+        inner_float = Inner(3.14)
+        outer_int = Outer(inner_int)
+        outer_float = Outer(inner_float)
+        outer_str = Outer("hello")
+
+        # Test recursive splitting - should unwrap nested unions
+        @test process_recursive(outer_int) == 10
+        @test process_recursive(outer_float) == 6.28
+        @test process_recursive(outer_str) == 5
+
+        # Test non-recursive splitting - should only unwrap one level
+        @test process_nonrecursive(outer_str) == 5
+        # Non-recursive should fail on nested wrapped unions (no method for Inner)
+        @test_throws MethodError process_nonrecursive(outer_int)
+
+        # Test type stability for recursive splitting
+        @inferred Int process_recursive(outer_int)
+        @inferred Float64 process_recursive(outer_float)
+        @inferred Int process_recursive(outer_str)
+
+        # Test with multiple nested wrapped unions
+        @wrapped struct Level3
+            union::Union{Inner, Float64}
+        end
+
+        @wrapped struct Level4
+            union::Union{Level3, String}
+        end
+
+        triple(x::Int) = x * 3
+        triple(x::Float64) = x * 3.0
+        triple(x::String) = x ^ 3  # Repeat string 3 times
+
+        triple_recursive(x) = @unionsplit recursive=true triple(x)
+
+        level3_inner = Level3(Inner(7))
+        level3_float = Level3(2.5)
+        level4_nested = Level4(level3_inner)
+        level4_float = Level4(level3_float)
+        level4_str = Level4("abc")
+
+        @test triple_recursive(level4_nested) == 21
+        @test triple_recursive(level4_float) == 7.5
+        @test triple_recursive(level4_str) == "abcabcabc"
+    end
 end
