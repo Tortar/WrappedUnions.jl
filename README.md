@@ -130,6 +130,38 @@ julia> f.(xs) # this is now type-stable
 (Z(0.0), Z(1.0), Z([1.0, 0.0]), Z([1.0, 2.0]))
 ```
 
+### Recursive Union Splitting
+
+When wrapped unions are nested inside other wrapped unions, you can use the `recursive=true` option to automatically unwrap all levels:
+
+```julia
+julia> @wrapped struct Inner <: WrappedUnion
+           union::Union{Int, Float64}
+       end
+
+julia> @wrapped struct Outer <: WrappedUnion
+           union::Union{Inner, String}
+       end
+
+julia> process(x::Int) = x * 2
+       process(x::Float64) = x * 2.0
+       process(x::String) = length(x)
+
+julia> process_recursive(x) = @unionsplit recursive=true process(x)
+
+julia> outer_int = Outer(Inner(5))
+Outer(Inner(5))
+
+julia> process_recursive(outer_int)  # recursively unwraps Inner then Int
+10
+
+julia> outer_str = Outer("hello")
+Outer("hello")
+
+julia> process_recursive(outer_str)  # unwraps to String
+5
+```
+
 ## API
 
 ```
@@ -140,10 +172,14 @@ julia> f.(xs) # this is now type-stable
 
 - unionsplit(f::Union{Type,Function}, 
              args::Tuple, 
-             kwargs::NamedTuple)                   -> Executes the function performing union-splitting
+             kwargs::NamedTuple;
+             recursive::Bool=false)                -> Executes the function performing union-splitting
                                                       on the wrapped union arguments and keyword arguments.
+                                                      If recursive=true, nested wrapped unions will be
+                                                      recursively unwrapped.
 
-- @unionsplit f(args...; kwargs...)                -> Calls `unionsplit(f, args, kwargs)`.
+- @unionsplit [recursive=true|false] f(args...; kwargs...)  
+                                                   -> Calls `unionsplit(f, args, kwargs; recursive=...)`.
 
 - unwrap(wu)                                       -> Returns the instance contained in the wrapped
                                                       union.
