@@ -93,3 +93,21 @@ end
     @test unwrap(ou2) == 5
     @test uniontype(ou2) == Union{Nothing, Char, Int, Float64}
 end
+
+# benchmark
+using BenchmarkTools
+
+@wrapped struct Q
+    union::Union{Bool, Int, Vector{Bool}, Vector{Int}}
+end
+
+xs = (
+    [rand((Q(false), Q(1), Q([true, false]), Q([1,2]))) for _ in 1:10],
+    [rand((Q(false), Q(1), Q([true, false]), Q([1,2]))) for _ in 1:10] 
+)
+
+wsum(a, b) = @unionsplit ((a, b) -> sum(a) + sum(b))(a, b)
+
+b = @benchmark wsum.($(xs)[1], $(xs)[2])
+
+println("Benchmark wrapped union: time = $(sum(b.times) / length(b.times)) ns, memory = $(b.memory) bytes")
