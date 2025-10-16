@@ -86,45 +86,74 @@ call will be type-stable.
     pos_arg_types = fieldtypes(args)
     kw_arg_types = fieldtypes(kwargs)
     kw_arg_names = fieldnames(kwargs)
-    wrappedunion_args = []
+
+    # Find the leftmost wrapped union argument
+    leftmost_wrapped = nothing
+
+    # Check positional arguments first
     for (i, T) in enumerate(pos_arg_types)
         if iswrappedunion(T)
-            push!(wrappedunion_args, (:pos, i, T))
+            leftmost_wrapped = (:pos, i, T)
+            break
         end
     end
-    for (i, T) in enumerate(kw_arg_types)
-        if iswrappedunion(T)
-            name = kw_arg_names[i]
-            push!(wrappedunion_args, (:kw, name, T))
+
+    # If not in positional, check keyword arguments
+    if isnothing(leftmost_wrapped)
+        for (i, T) in enumerate(kw_arg_types)
+            if iswrappedunion(T)
+                leftmost_wrapped = (:kw, kw_arg_names[i], T)
+                break
+            end
         end
     end
-    final_pos_args = Any[:(args[$i]) for i in 1:length(pos_arg_types)]
-    final_kw_args_map = Dict{Any, Any}(name => :(kwargs.$name) for name in kw_arg_names)
-    for (source, id, T) in wrappedunion_args
-        var_name = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
+
+    # Base case: no wrapped unions found, just call the function
+    if isnothing(leftmost_wrapped)
+        func = iswrappedunion(F) ? :(unwrap(f)) : :f
+        pos_args_expr = [:(args[$i]) for i in 1:length(pos_arg_types)]
+        kw_args_expr = [Expr(:kw, name, :(kwargs.$name)) for name in kw_arg_names]
+        return :($func($(pos_args_expr...); $(kw_args_expr...)))
+    end
+
+    # Recursive step: split the leftmost wrapped union
+    source, id, T = leftmost_wrapped
+    wrapped_types = Base.uniontypes(fieldtype(T, 1))
+
+    unwrapped_var = gensym(:unwrapped)
+    original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
+
+    # Build the if/elseif/.../else chain
+    branch_expr = :(error("No branch matched. This should be unreachable."))
+
+    # For each possible type in the union, create a new set of arguments
+    # for the recursive call, with the current argument unwrapped.
+    new_pos_args = Any[:(args[$i]) for i in 1:length(pos_arg_types)]
+    new_kw_args_map = Dict{Any, Any}(name => :(kwargs.$name) for name in kw_arg_names)
+
+    for V_type in reverse(wrapped_types)
+
         if source == :pos
-            final_pos_args[id] = var_name
+            new_pos_args[id] = unwrapped_var
         else
-            final_kw_args_map[id] = var_name
+            new_kw_args_map[id] = unwrapped_var
         end
+
+        new_kw_args = [Expr(:kw, name, val) for (name, val) in new_kw_args_map]
+        
+        # The body of the branch is the recursive call
+        recursive_call = :($WrappedUnions.unionsplit(f, ($(new_pos_args...),), (;$(new_kw_args...))))
+        condition = :($unwrapped_var isa $V_type)
+        branch_expr = Expr(:elseif, condition, recursive_call, branch_expr)
     end
-    final_kw_args = [Expr(:kw, name, val) for (name, val) in final_kw_args_map]
-    func = iswrappedunion(F) ? :(unwrap(f)) : :f
-    body = :($func($(final_pos_args...); $(final_kw_args...)))
-    for (source, id, T) in reverse(wrappedunion_args)
-        unwrapped_var = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
-        original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
-        wrapped_types = Base.uniontypes(fieldtype(T, 1))
-        branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
-        for V_type in reverse(wrapped_types)
-            condition = :($unwrapped_var isa $V_type)
-            branch_expr = Expr(:elseif, condition, body, branch_expr)
-        end
-        branch_expr = Expr(:if, branch_expr.args...)
-        body = quote
-            $unwrapped_var = unwrap($original_arg)
-            $branch_expr
-        end
+    
+    # The first `elseif` needs to be an `if`
+    branch_expr = Expr(:if, branch_expr.args...)
+
+    # The final generated code unwraps the argument and runs the conditional logic
+    body = quote
+        $unwrapped_var = unwrap($original_arg)
+        $branch_expr
     end
     return body
 end
