@@ -111,9 +111,11 @@ call will be type-stable.
     final_kw_args = [Expr(:kw, name, val) for (name, val) in final_kw_args_map]
     func = iswrappedunion(F) ? :(unwrap(f)) : :f
     body = :(return $func($(final_pos_args...); $(final_kw_args...)))
+    unwrapped_tup = []
     for (source, id, T) in reverse(wrappedunion_args)
         unwrapped_var = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
         original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
+        push!(unwrapped_tup, (unwrapped_var, original_arg))
         wrapped_types = Base.uniontypes(fieldtype(T, 1))
         branch_expr = nothing
         for V_type in reverse(wrapped_types)
@@ -123,8 +125,13 @@ call will be type-stable.
         end
         branch_expr = Expr(:if, branch_expr.args...)
         body = quote
-            $unwrapped_var = unwrap($original_arg)
             $branch_expr
+        end
+    end
+    for t in unwrapped_tup
+        body = quote
+            $(t[1]) = unwrap($(t[2]))
+            $body
         end
     end
     return quote 
