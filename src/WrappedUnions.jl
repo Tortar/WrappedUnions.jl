@@ -129,14 +129,12 @@ call will be type-stable.
         end
     end
     unwraps = [:($(t[1]) = unwrap($(t[2]))) for t in unwrapped_tup]
-    body = quote
+    return quote
         $(unwraps...)
-        $body
-    end
-    return quote 
         $body
         error("UNREACHABLE_REACHED")
     end
+    
 end
 
 """
