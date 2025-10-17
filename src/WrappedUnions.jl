@@ -127,6 +127,7 @@ call will be type-stable.
             $branch_expr
         end
     end
+    println(body)
     return quote 
         $body
         error("UNREACHABLE_REACHED")
