@@ -128,13 +128,9 @@ call will be type-stable.
             $branch_expr
         end
     end
-    for t in unwrapped_tup
-        body = quote
-            $(t[1]) = unwrap($(t[2]))
-            $body
-        end
-    end
-    return quote 
+    unwraps = [:($(t[1]) = unwrap($(t[2]))) for t in unwrapped_tup]
+    return quote
+        $(unwraps...)
         $body
         error("UNREACHABLE_REACHED")
     end
