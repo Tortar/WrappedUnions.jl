@@ -110,7 +110,7 @@ call will be type-stable.
     end
     final_kw_args = [Expr(:kw, name, val) for (name, val) in final_kw_args_map]
     func = iswrappedunion(F) ? :(unwrap(f)) : :f
-    body = :($func($(final_pos_args...); $(final_kw_args...)))
+    body = :(return $func($(final_pos_args...); $(final_kw_args...)))
     for (source, id, T) in reverse(wrappedunion_args)
         unwrapped_var = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
         original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
