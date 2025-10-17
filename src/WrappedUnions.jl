@@ -115,10 +115,11 @@ call will be type-stable.
         unwrapped_var = source == :pos ? Symbol("v_pos_", id) : Symbol("v_kw_", id)
         original_arg = source == :pos ? :(args[$id]) : :(kwargs.$id)
         wrapped_types = Base.uniontypes(fieldtype(T, 1))
-        branch_expr = :(error("THIS_SHOULD_BE_UNREACHABLE"))
+        branch_expr = nothing
         for V_type in reverse(wrapped_types)
             condition = :($unwrapped_var isa $V_type)
-            branch_expr = Expr(:elseif, condition, body, branch_expr)
+            branch_expr = isnothing(branch_expr) ? 
+                Expr(:elseif, condition, body) : Expr(:elseif, condition, body, branch_expr)
         end
         branch_expr = Expr(:if, branch_expr.args...)
         body = quote
@@ -126,7 +127,10 @@ call will be type-stable.
             $branch_expr
         end
     end
-    return body
+    return quote 
+        $body
+        error("UNREACHEABLE_REACHED")
+    end
 end
 
 """
