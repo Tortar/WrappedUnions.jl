@@ -82,7 +82,7 @@ passed as either positional `args` or keyword `kwargs`. This means that if the
 function has a unique return type for each combination of unwrapped types, the
 call will be type-stable.
 """
-@generated function unionsplit(f::F, args::Tuple, kwargs::NamedTuple) where {F}
+@inline @generated function unionsplit(f::F, args::Tuple, kwargs::NamedTuple) where {F}
     pos_arg_types = fieldtypes(args)
     kw_arg_types = fieldtypes(kwargs)
     kw_arg_names = fieldnames(kwargs)
