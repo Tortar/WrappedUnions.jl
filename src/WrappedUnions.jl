@@ -134,7 +134,6 @@ call will be type-stable.
         $body
         error("UNREACHABLE_REACHED")
     end
-    
 end
 
 """
